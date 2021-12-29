@@ -1,0 +1,60 @@
+syntax = "proto3";
+package athena;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "../protobuf";
+
+enum JobType {
+  // Ping - only latency is measured.
+  ICMP = 0;
+  TCP = 1;
+
+  // HTTP - latency and HTTP response body are measured.
+  HTTP = 11;
+  HTTPS = 12;
+
+  // DNS - latency and DNS Answer are measured.
+  DNS_A = 21;
+  DNS_AAAA = 22;
+  DNS_CNAME = 23;
+  DNS_MX = 24;
+}
+
+// Host represents a test target in the network.
+message Host {
+  string host_name = 1; // A host name or IP address
+  uint32 port = 2; // Used only for none ICMP JobType
+}
+
+message Result {
+  // Test Response
+  bool success = 5;
+  uint32 latency_ms = 6;
+
+  // JobType Specific Fields
+  optional string http_response = 10;
+  optional string dns_answer = 20;
+}
+
+// Job defines a set of targets to test connectivity/integrity using same method (ICMP, TCP, etc.) by a certain deadline.
+message Job {
+  // Job Identifier 
+  string uuid = 1;
+  JobType type = 2;
+
+  // Job Specs
+  repeated Host targets = 3;
+  google.protobuf.Timestamp deadline = 4;
+}
+
+message Response {
+  // Job Identifier
+  string uuid = 1;
+  JobType type = 2;
+  
+  // Job Specs
+  repeated Result results = 3;
+  google.protobuf.Timestamp accepted_at = 4;
+  google.protobuf.Timestamp reported_at = 5;
+}
