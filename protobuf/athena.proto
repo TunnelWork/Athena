@@ -5,7 +5,7 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "../protobuf";
 
-enum JobType {
+enum HostType {
   // Ping - only latency is measured.
   ICMP = 0;
   TCP = 1;
@@ -25,6 +25,44 @@ enum JobType {
 message Host {
   string host_name = 1; // A host name or IP address
   uint32 port = 2; // Used only for none ICMP JobType
+
+  HostType type = 3; // Type of the host
+}
+
+
+// Job defines a set of targets to test connectivity/integrity by a certain deadline.
+message Job {
+  // Job Identifier 
+  string uuid = 1;
+
+  // Job Specs
+  repeated Host hosts = 11;
+  google.protobuf.Timestamp deadline = 12;
+}
+
+enum NodeType {
+  Probe = 0; // Probe is a minimal worker. It works only after connecting to a Pool.
+  Worker = 1; // Worker accepts Job from a Server (possibly thru one or more Relay) and sends the result back to the Server (possibly thru one or more Relay).
+
+  Relay = 10; // Relay acts as a proxy between a Probe/Worker and a Server, Pool, or next Relay. 
+  Pool = 11; // Pool accepts Job from a Server and broadcast it to all connected Probe/Worker.
+
+  DevServer = 20; // DevServer is used for debugging only.
+}
+
+// Node represents a 
+message Node {
+  string node_uuid = 1;
+  NodeType type = 2;
+
+  string ip_addr = 11; // IP address of the node
+  string isp = 12; // ISP who provided the ip_addr and its route to the node
+  string country = 13; // Country of the node
+  string stateprovince = 14; // State/Province of the node
+  string city = 15; // City of the node
+
+  // Node Owner
+  string owner_uuid = 21; // UUID of the owner
 }
 
 message Result {
@@ -37,24 +75,13 @@ message Result {
   optional string dns_answer = 20;
 }
 
-// Job defines a set of targets to test connectivity/integrity using same method (ICMP, TCP, etc.) by a certain deadline.
-message Job {
-  // Job Identifier 
-  string uuid = 1;
-  JobType type = 2;
-
-  // Job Specs
-  repeated Host targets = 3;
-  google.protobuf.Timestamp deadline = 4;
-}
-
 message Response {
   // Job Identifier
   string uuid = 1;
-  JobType type = 2;
-  
+  repeated string relays = 2; // Relays that were used to forward the result. Used to trace the path & prevent loops.
+
   // Job Specs
-  repeated Result results = 3;
-  google.protobuf.Timestamp accepted_at = 4;
-  google.protobuf.Timestamp reported_at = 5;
+  repeated Result results = 11;
+  google.protobuf.Timestamp accepted_at = 12;
+  google.protobuf.Timestamp reported_at = 13;
 }
