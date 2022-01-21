@@ -23,10 +23,12 @@ enum HostType {
 
 // Host represents a test target in the network.
 message Host {
-  string host_name = 1; // A host name or IP address
+  string host_name = 1; // An IP address or FQDN.
   uint32 port = 2; // Used only for none ICMP JobType
+  bool ipv6 = 3; // if true, network will be set to tcp6
+  HostType type = 4; // Type of the host
 
-  HostType type = 3; // Type of the host
+  map<string, bytes> payloads = 100; // Payloads for Job customisation
 }
 
 
@@ -41,13 +43,16 @@ message Job {
 }
 
 enum NodeType {
-  Probe = 0; // Probe is a minimal worker. It works only after connecting to a Pool.
-  Worker = 1; // Worker accepts Job from a Server (possibly thru one or more Relay) and sends the result back to the Server (possibly thru one or more Relay).
+  // Worker Nodes
+  PROBE = 0; // Probe is a minimal worker. It works only after connecting to a Pool.
+  WORKER = 1; // Worker accepts Job from a Server (possibly thru one or more Relay) and sends the result back to the Server (possibly thru one or more Relay).
 
-  Relay = 10; // Relay acts as a proxy between a Probe/Worker and a Server, Pool, or next Relay. 
-  Pool = 11; // Pool accepts Job from a Server and broadcast it to all connected Probe/Worker.
+  // Intermediate Nodes
+  RELAY = 10; // Relay acts as a proxy between a Probe/Worker and a Server, Pool, or next Relay. 
+  POOL = 11; // Pool accepts Job from a Server and broadcast it to all connected Probe/Worker.
 
-  DevServer = 20; // DevServer is used for debugging only.
+  // Server Nodes
+  DEV_SERVER = 20; // DevServer is used for debugging only.
 }
 
 // Node represents a 
@@ -55,24 +60,31 @@ message Node {
   string node_uuid = 1;
   NodeType type = 2;
 
-  string ip_addr = 11; // IP address of the node
-  string isp = 12; // ISP who provided the ip_addr and its route to the node
-  string country = 13; // Country of the node
-  string stateprovince = 14; // State/Province of the node
-  string city = 15; // City of the node
+  optional string ip_addr = 11; // IP address of the node
+  optional string isp = 12; // ISP who provided the ip_addr and its route to the node
+  optional string country = 13; // Country of the node
+  optional string stateprovince = 14; // State/Province of the node
+  optional string city = 15; // City of the node
 
   // Node Owner
   string owner_uuid = 21; // UUID of the owner
 }
 
+enum ResultStatus {
+  // Result Status
+  SUCCESS = 0;
+  CONN_REFUSED = 1;
+  TIMEOUT = 2;
+  NETWORK_UNREACHABLE = 3;
+  
+  UNKNOWN = 10;
+}
+
 message Result {
   // Test Response
-  bool success = 5;
-  uint32 latency_ms = 6;
+  ResultStatus status = 1;
 
-  // JobType Specific Fields
-  optional string http_response = 10;
-  optional string dns_answer = 20;
+  map<string, bytes> payloads = 100; // Payloads for result customisation
 }
 
 message Response {
